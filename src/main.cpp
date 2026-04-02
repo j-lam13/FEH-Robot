@@ -24,6 +24,7 @@
 
 
 //Declarations for encoders & motors
+<<<<<<< HEAD
 DigitalEncoder left_encoder(FEHIO::Pin10);
 DigitalEncoder right_encoder(FEHIO::Pin8);
 FEHMotor right_motor(FEHMotor::Motor2,9.0);
@@ -35,6 +36,13 @@ DigitalInputPin front_right_bumper(FEHIO::Pin2);
 DigitalInputPin back_left_bumper(FEHIO::Pin3);
 DigitalInputPin back_right_bumper(FEHIO::Pin4);
 
+=======
+DigitalEncoder right_encoder(FEHIO::Pin10);
+DigitalEncoder left_encoder(FEHIO::Pin8);
+FEHMotor right_motor(FEHMotor::Motor2,9.0);
+FEHMotor left_motor(FEHMotor::Motor0,9.0);
+AnalogInputPin Cds(FEHIO::Pin14);
+>>>>>>> main
 
 void move_forward(int percent, int counts) //using encoders
 {
@@ -43,6 +51,7 @@ void move_forward(int percent, int counts) //using encoders
     left_encoder.ResetCounts();
 
     //Set both motors to desired percent
+<<<<<<< HEAD
     left_motor.SetPercent(percent+ 2);
     right_motor.SetPercent(-percent + 1);
 
@@ -60,6 +69,14 @@ void move_forward(int percent, int counts) //using encoders
             break;
         }
     }
+=======
+    left_motor.SetPercent(percent);
+    right_motor.SetPercent(-percent - 1);
+
+    //While the average of the left and right encoder is less than counts,
+    //keep running motors
+    while((left_encoder.Counts() + right_encoder.Counts()) / 2. < counts);
+>>>>>>> main
 
     //Turn off motors
     right_motor.Stop();
@@ -74,7 +91,11 @@ void moveUpRamp(int percent, int counts) //using encoders
 
     //Set both motors to desired percent
     left_motor.SetPercent(percent);
+<<<<<<< HEAD
     right_motor.SetPercent(-percent + 2); 
+=======
+    right_motor.SetPercent(-percent - 3);
+>>>>>>> main
 
     //While the average of the left and right encoder is less than counts,
     //keep running motors
@@ -157,8 +178,13 @@ void moveBackward(int percent, int counts) //using encoders
     left_encoder.ResetCounts();
 
     //Set both motors to desired percent
+<<<<<<< HEAD
     right_motor.SetPercent(percent - 1);
     left_motor.SetPercent(-percent - 2);
+=======
+    right_motor.SetPercent(percent + 1);
+    left_motor.SetPercent(-percent);
+>>>>>>> main
 
     //While the average of the left and right encoder is less than counts,
     //keep running motors
@@ -197,6 +223,7 @@ void moveWithLight(int percent, int counts) //using encoders
     left_motor.Stop();
 }
 
+<<<<<<< HEAD
 /*
  * Pulse forward a short distance using time
  */
@@ -375,17 +402,22 @@ void move_forward_middle(int percent, int counts) //using encoders
 
 
 
+=======
+>>>>>>> main
 
 
 void ERCMain()
 {
     int motor_percent = 25; //Input power level here
     int expected_counts = 62*22; //Multiply this by the number of inches, initial value subject to change 
+<<<<<<< HEAD
     float A_x, A_y, B_x, B_y, C_x, C_y, D_x, D_y, E_x, E_y;
     float A_heading, B_heading, C_heading, D_heading, E_heading;
     lever.SetMax (2500);
     lever.SetMin (500);
     // RCS.InitializeTouchMenu("1240E8QWF");
+=======
+>>>>>>> main
 
     // FEHFile* fptr = SD.FOpen("milestoneFourLocations.txt", "r");
     // SD.FScanf(fptr, "%f%f%f", &A_x, &A_y, &A_heading); //A is apple stump
@@ -405,6 +437,62 @@ void ERCMain()
     {
  
     }
+<<<<<<< HEAD
+=======
+
+// hit button on back
+motor_percent = 25;
+expected_counts = 62*1; //Multiply this by the number of inches, initial value subject to change
+moveBackward(motor_percent, expected_counts);
+// expected_counts = 31; //Multiply this by the number of inches, initial value subject to change
+// move_forward(motor_percent, expected_counts);
+expected_counts = 140; //turn 45 degrees, test this (this might go right not too sure)
+turn_right(motor_percent, expected_counts);
+expected_counts = 62*6; //forward to the ramp
+move_forward(motor_percent, expected_counts);
+
+motor_percent = 40;
+expected_counts = 62*27; //move up the ramp - test actual placement location and adjust expected counts accordingly
+moveUpRamp(motor_percent, expected_counts);
+motor_percent = 25;
+expected_counts = 155; //move forward off the ramp
+moveBackward(motor_percent, expected_counts);
+expected_counts = 240; //turn 90 degrees, test this (this might go right not too sure)
+turn_left(motor_percent, expected_counts); //turn left to face the target rv Was here and grant smells
+expected_counts = 62*7; 
+moveBackward(motor_percent, expected_counts); //move back against the wall to straighten out
+
+expected_counts = 62*30;
+moveWithLight(motor_percent, expected_counts); //move forward to the target
+if (Cds.Value() < .9) {
+    LCD.WriteLine("Light Found");
+}
+Sleep(3000);
+if (Cds.Value() > .6) 
+{
+    LCD.WriteLine("Blue Found");
+    expected_counts = 240; //turn 90 degrees, test this 
+    turn_left(motor_percent, expected_counts); 
+    expected_counts = 62*2; 
+    move_forward(motor_percent, expected_counts);
+    expected_counts = 240; //turn 90 degrees, test this 
+    turn_right(motor_percent, expected_counts);
+    expected_counts = 62*8;
+    move_forward(motor_percent, expected_counts);
+
+}
+else
+{
+        LCD.WriteLine("Red Found");
+    expected_counts = 240; //turn 90 degrees, test this 
+    turn_right(motor_percent, expected_counts); 
+    expected_counts = 62*2; 
+    move_forward(motor_percent, expected_counts);
+    expected_counts = 240; //turn 90 degrees, test this 
+    turn_left(motor_percent, expected_counts);
+    expected_counts = 62*8;
+    move_forward(motor_percent, expected_counts);
+>>>>>>> main
 
 //hit button on back
 //pid
@@ -484,3 +572,18 @@ move_forward(motor_percent, expected_counts); //move to the levers
 
 //sleep 105, 95 degrees base
 }
+<<<<<<< HEAD
+=======
+
+expected_counts = 62*18; //move back to go back down
+moveBackward(motor_percent, expected_counts);
+expected_counts = 62*2;
+move_forward(motor_percent, expected_counts);
+expected_counts = 240; //turn 90 degrees
+turn_left(motor_percent, expected_counts);
+expected_counts = 62*35; //move down the ramp
+move_forward(motor_percent, expected_counts);
+
+
+}
+>>>>>>> main
