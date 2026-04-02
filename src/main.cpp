@@ -8,12 +8,33 @@
 #include <FEHUtility.h>
 #include <FEHMotor.h>
 
+// RCS Delay time
+#define RCS_WAIT_TIME_IN_SEC 0.35
+
+// Defines for pulsing the robot
+#define PULSE_TIME 20
+#define PULSE_POWER 25
+
+// Define for the motor power
+#define POWER 25
+
+// Orientation of AruCo Code
+#define PLUS 0
+#define MINUS 1
+
+
 //Declarations for encoders & motors
-DigitalEncoder right_encoder(FEHIO::Pin10);
-DigitalEncoder left_encoder(FEHIO::Pin8);
+DigitalEncoder left_encoder(FEHIO::Pin10);
+DigitalEncoder right_encoder(FEHIO::Pin8);
 FEHMotor right_motor(FEHMotor::Motor2,9.0);
 FEHMotor left_motor(FEHMotor::Motor0,9.0);
-AnalogInputPin Cds(FEHIO::Pin14);
+AnalogInputPin Cds(FEHIO::Pin5);
+FEHServo lever(FEHServo::Servo0);
+DigitalInputPin front_left_bumper(FEHIO::Pin1);
+DigitalInputPin front_right_bumper(FEHIO::Pin2);
+DigitalInputPin back_left_bumper(FEHIO::Pin3);
+DigitalInputPin back_right_bumper(FEHIO::Pin4);
+
 
 void move_forward(int percent, int counts) //using encoders
 {
@@ -27,7 +48,18 @@ void move_forward(int percent, int counts) //using encoders
 
     //While the average of the left and right encoder is less than counts,
     //keep running motors
-    while((left_encoder.Counts() + right_encoder.Counts()) / 2. < counts);
+    while((left_encoder.Counts() + right_encoder.Counts()) / 2. < counts )
+    {
+        // If either of the front bumpers are pressed, break out of the loop to stop the robot
+        if(front_left_bumper.Value() == 0 && front_right_bumper.Value() == 0)
+        {
+            break;
+        }
+        if (back_left_bumper.Value() == 0 && back_right_bumper.Value() == 0)
+        {
+            break;
+        }
+    }
 
     //Turn off motors
     right_motor.Stop();
@@ -130,7 +162,16 @@ void moveBackward(int percent, int counts) //using encoders
 
     //While the average of the left and right encoder is less than counts,
     //keep running motors
-    while((left_encoder.Counts() + right_encoder.Counts()) / 2. < counts);
+    while((left_encoder.Counts() + right_encoder.Counts()) / 2. < counts) {
+                if(front_left_bumper.Value() == 0 && front_right_bumper.Value() == 0)
+        {
+            break;
+        }
+        if (back_left_bumper.Value() == 0 && back_right_bumper.Value() == 0)
+        {
+            break;
+        }
+    }
 
     //Turn off motors
     right_motor.Stop();
@@ -156,12 +197,203 @@ void moveWithLight(int percent, int counts) //using encoders
     left_motor.Stop();
 }
 
+/*
+ * Pulse forward a short distance using time
+ */
+void pulse_forward(int percent, float seconds) 
+{
+    // Set both motors to desired percent
+    right_motor.SetPercent(percent);
+    left_motor.SetPercent(percent);
+
+    // Wait for the correct number of seconds
+    Sleep(seconds);
+
+    // Turn off motors
+    right_motor.Stop();
+    left_motor.Stop();
+}
+
+/*
+ * Pulse counterclockwise a short distance using time
+ */
+void pulse_counterclockwise(int percent, float seconds) 
+{
+    // Set both motors to desired percent
+    right_motor.SetPercent(percent);
+    left_motor.SetPercent(-percent);
+
+    // Wait for the correct number of seconds
+    Sleep(seconds);
+
+    // Turn off motors
+    right_motor.Stop();
+    left_motor.Stop();
+}
+
+void bucket(int percent, float counts) {
+      //Reset encoder counts
+    right_encoder.ResetCounts();
+    left_encoder.ResetCounts();
+
+    //Set both motors to desired percent
+    left_motor.SetPercent(percent);
+    right_motor.SetPercent(-percent - 1);
+
+    //While the average of the left and right encoder is less than counts,
+    //keep running motors
+    while((left_encoder.Counts() + right_encoder.Counts()) / 2. < counts )
+    {
+        // If either of the front bumpers are pressed, break out of the loop to stop the robot
+        if(front_right_bumper.Value() == 0)
+        {
+            break;
+        }
+    }
+}
+
+/* 
+ * Use RCS to move to the desired x_coordinate based on the orientation of the AruCo code
+ */
+void check_x(float x_coordinate, int orientation)
+{
+    // Determine the direction of the motors based on the orientation of the AruCo code 
+    int power = PULSE_POWER;
+    if(orientation == MINUS){
+        power = -PULSE_POWER;
+    }
+
+    RCSPose* pose = RCS.RequestPosition();
+
+    // Check if receiving proper RCS coordinates and whether the robot is within an acceptable range
+    for (int i = 0; i < 10; i++) {
+        if(pose >=0 && (pose->x < x_coordinate - 1 || pose->x > x_coordinate + 1))
+        {
+            if(pose->x < x_coordinate - 1)
+            {
+                // Pulse the motors for a short duration in the correct direction
+                pulse_forward(-power, PULSE_TIME);
+            }
+            else if(pose->x > x_coordinate + 1)
+            {
+                // Pulse the motors for a short duration in the correct direction
+                pulse_forward(power, PULSE_TIME);
+            }
+            Sleep(RCS_WAIT_TIME_IN_SEC);
+
+            pose = RCS.RequestPosition();
+        }
+}
+}
+
+
+/* 
+ * Use RCS to move to the desired y_coordinate based on the orientation of the QR code
+ */
+void check_y(float y_coordinate, int orientation)
+{
+    // Determine the direction of the motors based on the orientation of the QR code
+    int power = PULSE_POWER;
+    if(orientation == MINUS){
+        power = -PULSE_POWER;
+    }
+
+    RCSPose* pose = RCS.RequestPosition();
+
+    // Check if receiving proper RCS coordinates and whether the robot is within an acceptable range
+    for (int i = 0; i < 10; i++) {
+        while(pose >= 0 && (pose->y < y_coordinate - 1 || pose->y > y_coordinate + 1))
+        {
+            if(pose->y < y_coordinate - 1)
+            {
+                // Pulse the motors for a short duration in the correct direction
+                pulse_forward(-power, PULSE_TIME);
+            }
+            else if(pose->y > y_coordinate + 1)
+            {
+                // Pulse the motors for a short duration in the correct direction
+            pulse_forward(power, PULSE_TIME);
+            }
+            Sleep(RCS_WAIT_TIME_IN_SEC);
+            
+            pose = RCS.RequestPosition();
+        }
+    }   
+}
+
+/* 
+ * Use RCS to move to the desired heading
+ */
+void check_heading(float heading)
+{
+    RCSPose* pose = RCS.RequestPosition();
+while (pose >= 0 && (pose->heading < heading - 1 || pose->heading > heading + 1))
+    {
+        RCSPose* pose = RCS.RequestPosition();
+        if(pose >= 0 && (pose->heading < heading - 1 || pose->heading > heading + 1))
+        {
+            if(pose->heading < heading - 1)
+            {
+                // Pulse the motors for a short duration in the correct direction
+                pulse_counterclockwise(-PULSE_POWER, PULSE_TIME);
+            }
+            else if(pose->heading > heading + 1)
+            {
+                // Pulse the motors for a short duration in the correct direction
+                pulse_counterclockwise(PULSE_POWER, PULSE_TIME);
+            }
+            Sleep(RCS_WAIT_TIME_IN_SEC);
+        }
+    }
+    
+}
+void move_forward_middle(int percent, int counts) //using encoders
+{
+    //Reset encoder counts
+    right_encoder.ResetCounts();
+    left_encoder.ResetCounts();
+
+    //Set both motors to desired percent
+    left_motor.SetPercent(percent);
+    right_motor.SetPercent(-percent - 1);
+    float start_time = TimeNow();
+    //While the average of the left and right encoder is less than counts,
+    //keep running motors
+    while((left_encoder.Counts() + right_encoder.Counts()) / 2. < counts )
+    {
+       if(TimeNow() - start_time > 1.5) 
+       {
+        break;
+    }
+    
+    }
+
+    //Turn off motors
+    right_motor.Stop();
+    left_motor.Stop();
+}
+
+
+
 
 
 void ERCMain()
 {
     int motor_percent = 25; //Input power level here
     int expected_counts = 62*22; //Multiply this by the number of inches, initial value subject to change 
+    float A_x, A_y, B_x, B_y, C_x, C_y, D_x, D_y, E_x, E_y;
+    float A_heading, B_heading, C_heading, D_heading, E_heading;
+    lever.SetMax (2500);
+    lever.SetMin (500);
+    RCS.InitializeTouchMenu("1240E8QWF");
+
+    FEHFile* fptr = SD.FOpen("milestoneFourLocations.txt", "r");
+    SD.FScanf(fptr, "%f%f%f", &A_x, &A_y, &A_heading); //A is apple stump
+    SD.FScanf(fptr, "%f%f%f", &B_x, &B_y, &B_heading); //B is apple dropoff
+    SD.FScanf(fptr, "%f%f%f", &C_x, &C_y, &C_heading); //C is Left lever
+    SD.FScanf(fptr, "%f%f%f", &D_x, &D_y, &D_heading); //D is middle lever
+    SD.FScanf(fptr, "%f%f%f", &E_x, &E_y, &E_heading); //E is right lever
+    SD.FClose(fptr);
 
     //Initialize the screen
     LCD.Clear(BLACK);
@@ -171,39 +403,80 @@ void ERCMain()
            LCD.WriteLine("Waiting for light...");
     while(Cds.Value() > 1.0) //wait for light to be less than 2.5 volts, adjust this value as necessary
     {
-        LCD.Clear(BLACK);
-        LCD.WriteLine(Cds.Value());
-
-        Sleep(500);
+ 
     }
 
-// hit button on back
+//hit button on back
+//pid
+lever.SetDegree(95); //picks up bucket
 motor_percent = 25;
-expected_counts = 62*1; //Multiply this by the number of inches
+expected_counts = 62*3; //Multiply this by the number of inches, initial value subject to change
+move_forward_middle(motor_percent, expected_counts);
+expected_counts = 62*8;
 moveBackward(motor_percent, expected_counts);
-expected_counts = 140; //turn 45 degrees
-turn_right(motor_percent, expected_counts);
-expected_counts = 62*5; //forward however much is needed #test this
-move_forward(motor_percent, expected_counts);
-
-expected_counts = 270; //turn 90 degrees, 
+expected_counts = 135;
 turn_left(motor_percent, expected_counts);
-motor_percent = 25;
-expected_counts = 62*11; //forward however much is needed #test this
+expected_counts = 62*8; //move to the bucket
+moveBackward(motor_percent, expected_counts);
+lever.SetDegree(105); //keeps bucket there
+Sleep(100); //slight pause to make sure bucket is secure
+expected_counts = 62*17; //move back to the ramp
 move_forward(motor_percent, expected_counts);
-expected_counts = 270; //turn 90 degrees, 
-turn_right(motor_percent, expected_counts); //turn left to face the target direction
-expected_counts = 62*11; 
-move_forward(motor_percent, expected_counts); //move forward to hit wall
-expected_counts = 15;
-moveBackward(motor_percent, expected_counts); //move back if needed
-expected_counts = 270; //turn 90 degrees,
-turn_right(motor_percent, expected_counts); //turn right to face the target direction
-expected_counts = 62*7; //idk the distance of the window atp
-move_forward(motor_percent, expected_counts); //move forward to window
-expected_counts = 62*3; //move back if needed
-moveBackward(motor_percent, expected_counts); 
-expected_counts = 270; //turn 90 degrees, 
-turn_right(motor_percent, expected_counts); //turn right to face the target direction
-//path back to button later (if needed/wanted)
+expected_counts = 270;
+turn_left(motor_percent, expected_counts);
+expected_counts = 62*17; //move up the ramp until the wall things are hit (adjust method later to use bump switches)
+move_forward(motor_percent, expected_counts);
+expected_counts = 270; 
+turn_left(motor_percent, expected_counts);
+expected_counts = 62*7; //move to position in line of drop off
+moveBackward(motor_percent, expected_counts);
+expected_counts = 62*6;
+move_forward(motor_percent, expected_counts); //move to the drop off
+expected_counts = 270;
+turn_right(motor_percent, expected_counts);
+expected_counts = 62*15; //move to drop off
+bucket(motor_percent, expected_counts); 
+lever.SetDegree(95); //keep lever there
+expected_counts = 62*3;
+moveBackward(motor_percent, expected_counts);
+expected_counts = 270;
+turn_left(motor_percent, expected_counts);
+expected_counts = 62*3; 
+move_forward(motor_percent, expected_counts); //move to the levers
+//RCS shenanigans
+    if(RCS.GetLever() == 0)
+    {
+        check_x(C_x, PLUS);
+        expected_counts = 270;
+        turn_right(motor_percent, expected_counts);
+        check_y(C_y, PLUS);
+        check_heading(C_heading);
+        expected_counts = 62; //move to the lever
+        move_forward(motor_percent, expected_counts);
+        //servo to flip
+    } 
+    else if(RCS.GetLever() == 1)
+    {
+        check_x(D_x, PLUS);
+        expected_counts = 270;
+        turn_right(motor_percent, expected_counts);
+        check_y(D_y, PLUS);
+        check_heading(D_heading);
+        expected_counts = 62; //move to the lever
+        move_forward(motor_percent, expected_counts);
+        //servo to flip
+    }
+    else if(RCS.GetLever() == 2)
+    {
+        check_x(E_x, PLUS);
+        expected_counts = 270;
+        turn_right(motor_percent, expected_counts);
+        check_y(E_y, PLUS);
+        check_heading(E_heading);
+        expected_counts = 62; //move to the lever
+        move_forward(motor_percent, expected_counts);
+        //servo to flip
+    }
+
+//sleep 105, 95 degrees base
 }
