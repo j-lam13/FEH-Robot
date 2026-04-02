@@ -44,7 +44,7 @@ void move_forward(int percent, int counts) //using encoders
 
     //Set both motors to desired percent
     left_motor.SetPercent(percent);
-    right_motor.SetPercent(-percent - 1);
+    right_motor.SetPercent(-percent + 1);
 
     //While the average of the left and right encoder is less than counts,
     //keep running motors
@@ -74,7 +74,7 @@ void moveUpRamp(int percent, int counts) //using encoders
 
     //Set both motors to desired percent
     left_motor.SetPercent(percent);
-    right_motor.SetPercent(-percent - 3);
+    right_motor.SetPercent(-percent + 2); 
 
     //While the average of the left and right encoder is less than counts,
     //keep running motors
@@ -157,7 +157,7 @@ void moveBackward(int percent, int counts) //using encoders
     left_encoder.ResetCounts();
 
     //Set both motors to desired percent
-    right_motor.SetPercent(percent + 1);
+    right_motor.SetPercent(percent - 1);
     left_motor.SetPercent(-percent);
 
     //While the average of the left and right encoder is less than counts,
@@ -385,16 +385,16 @@ void ERCMain()
     float A_heading, B_heading, C_heading, D_heading, E_heading;
     lever.SetMax (2500);
     lever.SetMin (500);
-    RCS.InitializeTouchMenu("1240E8QWF");
+    // RCS.InitializeTouchMenu("1240E8QWF");
 
-    FEHFile* fptr = SD.FOpen("milestoneFourLocations.txt", "r");
-    SD.FScanf(fptr, "%f%f%f", &A_x, &A_y, &A_heading); //A is apple stump
-    SD.FScanf(fptr, "%f%f%f", &B_x, &B_y, &B_heading); //B is apple dropoff
-    SD.FScanf(fptr, "%f%f%f", &C_x, &C_y, &C_heading); //C is Left lever
-    SD.FScanf(fptr, "%f%f%f", &D_x, &D_y, &D_heading); //D is middle lever
-    SD.FScanf(fptr, "%f%f%f", &E_x, &E_y, &E_heading); //E is right lever
-    SD.FClose(fptr);
-
+    // FEHFile* fptr = SD.FOpen("milestoneFourLocations.txt", "r");
+    // SD.FScanf(fptr, "%f%f%f", &A_x, &A_y, &A_heading); //A is apple stump
+    // SD.FScanf(fptr, "%f%f%f", &B_x, &B_y, &B_heading); //B is apple dropoff
+    // SD.FScanf(fptr, "%f%f%f", &C_x, &C_y, &C_heading); //C is Left lever
+    // SD.FScanf(fptr, "%f%f%f", &D_x, &D_y, &D_heading); //D is middle lever
+    // SD.FScanf(fptr, "%f%f%f", &E_x, &E_y, &E_heading); //E is right lever
+    // SD.FClose(fptr);
+    lever.SetDegree(91); //picks up bucket
     //Initialize the screen
     LCD.Clear(BLACK);
     LCD.SetFontColor(WHITE);
@@ -408,75 +408,79 @@ void ERCMain()
 
 //hit button on back
 //pid
-lever.SetDegree(95); //picks up bucket
+lever.SetDegree(91); //picks up bucket
 motor_percent = 25;
 expected_counts = 62*3; //Multiply this by the number of inches, initial value subject to change
 move_forward_middle(motor_percent, expected_counts);
-expected_counts = 62*8;
+expected_counts = 506; //arbitrary value
 moveBackward(motor_percent, expected_counts);
 expected_counts = 135;
 turn_left(motor_percent, expected_counts);
-expected_counts = 62*8; //move to the bucket
+expected_counts = 545; //move to the bucket (value is subject to change))
 moveBackward(motor_percent, expected_counts);
 lever.SetDegree(105); //keeps bucket there
 Sleep(100); //slight pause to make sure bucket is secure
 expected_counts = 62*17; //move back to the ramp
-move_forward(motor_percent, expected_counts);
-expected_counts = 270;
+moveUpRamp(motor_percent, expected_counts);
+expected_counts = 250;
 turn_left(motor_percent, expected_counts);
 expected_counts = 62*17; //move up the ramp until the wall things are hit (adjust method later to use bump switches)
 move_forward(motor_percent, expected_counts);
-expected_counts = 270; 
+expected_counts = 250; 
 turn_left(motor_percent, expected_counts);
 expected_counts = 62*7; //move to position in line of drop off
 moveBackward(motor_percent, expected_counts);
 expected_counts = 62*6;
 move_forward(motor_percent, expected_counts); //move to the drop off
-expected_counts = 270;
+expected_counts = 250;
+turn_right(motor_percent, expected_counts);
+expected_counts = 62*3;
+move_forward(motor_percent, expected_counts); //move to axis of drop off
+expected_counts = 250;
 turn_right(motor_percent, expected_counts);
 expected_counts = 62*15; //move to drop off
 bucket(motor_percent, expected_counts); 
-lever.SetDegree(95); //keep lever there
+lever.SetDegree(91); //drop
 expected_counts = 62*3;
 moveBackward(motor_percent, expected_counts);
-expected_counts = 270;
+expected_counts = 250;
 turn_left(motor_percent, expected_counts);
 expected_counts = 62*3; 
 move_forward(motor_percent, expected_counts); //move to the levers
 //RCS shenanigans
-    if(RCS.GetLever() == 0)
-    {
-        check_x(C_x, PLUS);
-        expected_counts = 270;
-        turn_right(motor_percent, expected_counts);
-        check_y(C_y, PLUS);
-        check_heading(C_heading);
-        expected_counts = 62; //move to the lever
-        move_forward(motor_percent, expected_counts);
-        //servo to flip
-    } 
-    else if(RCS.GetLever() == 1)
-    {
-        check_x(D_x, PLUS);
-        expected_counts = 270;
-        turn_right(motor_percent, expected_counts);
-        check_y(D_y, PLUS);
-        check_heading(D_heading);
-        expected_counts = 62; //move to the lever
-        move_forward(motor_percent, expected_counts);
-        //servo to flip
-    }
-    else if(RCS.GetLever() == 2)
-    {
-        check_x(E_x, PLUS);
-        expected_counts = 270;
-        turn_right(motor_percent, expected_counts);
-        check_y(E_y, PLUS);
-        check_heading(E_heading);
-        expected_counts = 62; //move to the lever
-        move_forward(motor_percent, expected_counts);
-        //servo to flip
-    }
+    // if(RCS.GetLever() == 0)
+    // {
+    //     check_x(C_x, PLUS);
+    //     expected_counts = 270;
+    //     turn_right(motor_percent, expected_counts);
+    //     check_y(C_y, PLUS);
+    //     check_heading(C_heading);
+    //     expected_counts = 62; //move to the lever
+    //     move_forward(motor_percent, expected_counts);
+    //     //servo to flip
+    // } 
+    // else if(RCS.GetLever() == 1)
+    // {
+    //     check_x(D_x, PLUS);
+    //     expected_counts = 270;
+    //     turn_right(motor_percent, expected_counts);
+    //     check_y(D_y, PLUS);
+    //     check_heading(D_heading);
+    //     expected_counts = 62; //move to the lever
+    //     move_forward(motor_percent, expected_counts);
+    //     //servo to flip
+    // }
+    // else if(RCS.GetLever() == 2)
+    // {
+    //     check_x(E_x, PLUS);
+    //     expected_counts = 270;
+    //     turn_right(motor_percent, expected_counts);
+    //     check_y(E_y, PLUS);
+    //     check_heading(E_heading);
+    //     expected_counts = 62; //move to the lever
+    //     move_forward(motor_percent, expected_counts);
+    //     //servo to flip
+    // }
 
 //sleep 105, 95 degrees base
 }
