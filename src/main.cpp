@@ -43,7 +43,7 @@ void move_forward(int percent, int counts) //using encoders
     left_encoder.ResetCounts();
 
     //Set both motors to desired percent
-    left_motor.SetPercent(percent);
+    left_motor.SetPercent(percent+ 2);
     right_motor.SetPercent(-percent + 1);
 
     //While the average of the left and right encoder is less than counts,
@@ -158,7 +158,7 @@ void moveBackward(int percent, int counts) //using encoders
 
     //Set both motors to desired percent
     right_motor.SetPercent(percent - 1);
-    left_motor.SetPercent(-percent);
+    left_motor.SetPercent(-percent - 2);
 
     //While the average of the left and right encoder is less than counts,
     //keep running motors
